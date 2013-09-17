@@ -1,11 +1,9 @@
 require 'socketeer'
-require_relative 'server_override'
 
 class IQueue < Queue
 end
 
-
-module SimpleReceiver
+module ChannelReceiver
 
   def bind host, port, &callback
     # will use the passed callback if provided, else calls handle_message

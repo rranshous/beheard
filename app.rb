@@ -13,3 +13,7 @@ class SimpleBroadcaster
   end
 
 end
+
+class SoapboxBroadcaster
+  include ChannelReceiver
+end
