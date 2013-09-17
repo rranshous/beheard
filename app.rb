@@ -9,7 +9,7 @@ class SimpleBroadcaster
     # grab our data off the line
     data = msg[:data]
     # send it to everyone (no receiver conn_id = everyone)
-    send_message nil, data
+    send_message nil, data, source_conn_id: msg[:conn_id]
   end
 
 end
