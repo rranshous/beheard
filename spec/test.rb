@@ -4,6 +4,5 @@ sb = SimpleBroadcaster.new
 sb.bind 'localhost', 32123
 loop do
   sb.cycle
-  puts 'cycling'
-  sleep 1
+  sleep 0.1
 end

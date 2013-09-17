@@ -5,6 +5,7 @@ class SimpleBroadcaster
   include SimpleReceiver
 
   def handle_message msg
+    puts "handling message: #{msg}"
     # grab our data off the line
     data = msg[:data]
     # send it to everyone (no receiver conn_id = everyone)
