@@ -3,6 +3,18 @@ require 'socketeer'
 class IQueue < Queue
 end
 
+class SourceSetter
+
+  include Messenger
+
+  def cycle
+    msg = pop_message
+    return if msg.nil?
+    puts "handling message: #{msg}"
+    push_message msg.merge source_conn_id: msg[:conn_id] if msg[:data]
+  end
+end
+
 # We take a msg and from it create a msg to each
 # other connection in the channel, not including the sender
 class ChannelRecipientFan
@@ -21,6 +33,9 @@ class ChannelRecipientFan
     puts "fan in_msg: #{in_msg}"
     channel_id = in_msg[:channel_id]
     puts "fan channel_id: #{channel_id}"
+    # go through the channel lookup finding connections
+    # which are from the same channel as the source connection
+    # but are not the source connection
     channel_lookup
     .select { |_, cid| cid == channel_id }
     .select { |cid, _| cid != in_msg[:source_conn_id] }
@@ -79,23 +94,21 @@ end
 
 module ChannelReceiver
 
-  def bind host, port, &callback
-    # will use the passed callback if provided, else calls handle_message
-    callback ||= proc { |m| handle_message m }
+  def bind host, port
     @server = Server.new host, port, Handler
-    @message_handler = MessageHandler.new &callback 
+    @source_setter = SourceSetter.new
     @channel_lookup = {}
     @channel_decider = ChannelDecider.new @channel_lookup
     @channel_recipient_fan = ChannelRecipientFan.new @channel_lookup
 
     @server.bind_queues IQueue.new, IQueue.new
-    @message_handler.bind_queues IQueue.new, IQueue.new
+    @source_setter.bind_queues IQueue.new, IQueue.new
     @channel_decider.bind_queues IQueue.new, IQueue.new
     @channel_recipient_fan.bind_queues IQueue.new, IQueue.new
 
     @pipeline = Pipeline.new(@server,
                              @channel_decider,
-                             @message_handler, 
+                             @source_setter, 
                              @channel_recipient_fan,
                              @server)
     [host, port]
@@ -106,13 +119,6 @@ module ChannelReceiver
   end
 
   private
-
-  def handle_message message
-  end
-
-  def send_message data
-    @message_handler.out_queue << data
-  end
 
   def register_socket socket
     @server.instance_eval do
